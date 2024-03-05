@@ -92,5 +92,5 @@ class Database {
 			.run();
 	}
 
-
+}
 export { Database }
