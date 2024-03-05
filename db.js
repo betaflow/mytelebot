@@ -16,27 +16,41 @@ class Database {
 		return Number(result);
 	}
 
-	async setSetting(settingName, settingValue) {
+		async checkStatus(chat_id) {
+		return await this.db.prepare("SELECT status FROM users WHERE chat_id = ?")
+			.bind(chat_id)
+			.first('status');
+	}
+	
+		async checkLevel(chat_id) {
+		return await this.db.prepare("SELECT level FROM users WHERE chat_id = ?")
+			.bind(chat_id)
+			.first('level');
+	}
+		async setStatus(chat_id, settingValue) {
 		return await this.db.prepare(
 			`INSERT 
-				INTO settings (createdDate, updatedDate, name, value)
-				VALUES (DATETIME('now'), DATETIME('now'), ?, ?)
-				ON CONFLICT(name) DO UPDATE SET
-					updatedDate = DATETIME('now'),
-					value = excluded.value
-					WHERE excluded.value <> settings.value`
+				INTO users (status)
+				VALUES (?)
+					WHERE chat_id = ?`
 		  )
-			.bind(settingName, settingValue)
+			.bind(settingValue, chat_id)
 			.run();
 	}
+	
 
-	async addMessage(message, updateId) {
+		async setUser(chat_id) {
 		return await this.db.prepare(
 			`INSERT 
-				INTO messages (createdDate, updatedDate, message, updateId)
-				VALUES (DATETIME('now'), DATETIME('now'), ?, ?)`
+				INTO users (chat_id, username, frirtname, lastname, status, level)
+				VALUES (?, ?, ?, ?, "home", 1)
+				ON CONFLICT(chat_id) DO UPDATE SET
+					firstName = excluded.firstName,
+					lastName = excluded.lastName,
+					username = excluded.username,
+					WHERE excluded.chat_id <> users.chat_id`
 		  )
-			.bind(message, updateId)
+			.bind(chat_id, user.username||null,user.first_name||null, user.last_name)
 			.run();
 	}
 
@@ -78,46 +92,5 @@ class Database {
 			.run();
 	}
 
-	async saveToken(telegramId, tokenHash) {
-		const user = await this.getUser(telegramId);
-		console.log(user.id, tokenHash);
-		return await this.db.prepare(
-			`INSERT 
-				INTO tokens (createdDate, updatedDate, expiredDate, userId, tokenHash) 
-				VALUES (DATETIME('now'), DATETIME('now'), DATETIME('now', '+1 day'), ?, ?)`
-			)
-			.bind(user.id, tokenHash)
-			.run();
-	}
-
-	async getUserByTokenHash(tokenHash) {
-		return await this.db.prepare(
-			`SELECT users.* FROM tokens 
-				INNER JOIN users ON tokens.userId = users.id
-				WHERE tokenHash = ? AND DATETIME('now') < expiredDate`
-			)
-			.bind(tokenHash)
-			.first();
-	}
-
-	async saveCalendar(calendarJson, calendarRef, userId) {
-		return await this.db.prepare(
-			`INSERT 
-				INTO calendars (createdDate, updatedDate, calendarJson, calendarRef, userId) 
-				VALUES (DATETIME('now'), DATETIME('now'), ?, ?, ?)`
-			)
-			.bind(calendarJson, calendarRef, userId)
-			.run();
-	}
-
-	async getCalendarByRef(calendarRef) {
-		return await this.db.prepare(
-			`SELECT calendarJson FROM calendars 
-				WHERE calendarRef = ?`
-			)
-			.bind(calendarRef)
-			.first('calendarJson');
-	}
-}
 
 export { Database }
