@@ -13,9 +13,6 @@ on:
       worker_url:
         value: https://${{ jobs.deploy.outputs.worker_name }}.${{ jobs.deploy.outputs.subdomain }}
         description: The URL of the CloudFlare worker  
-      pages_url:
-        value: ${{ jobs.deploy.outputs.pages_url }}
-        description: The URL of the CloudFlare Pages deployment
       d1_database_name:
         value: ${{ jobs.deploy.outputs.database_name }}
         description: The name of the CloudFlare database as described in wrangler.toml
@@ -40,7 +37,6 @@ jobs:
       subdomain: ${{ steps.get_subdomain.outputs.subdomain }}
       database_apparent_id: ${{ steps.get_db_id_by_name.outputs.uuid }}
       database_apparent_name: ${{ steps.get_db_name_by_id.outputs.name }}
-      pages_url: ${{ steps.get_pages_url.outputs.url }}
     steps:
       - name: Check that the secrets are set in the repository
         id: check_secrets_set
@@ -123,15 +119,6 @@ jobs:
           curl -X GET "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/${{ steps.determine_database.outputs.id }}" \
           -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].name' | echo name=$(cat) >> $GITHUB_OUTPUT
       
-      - name: Call CloudFlare API to find Pages URL
-        id: get_pages_url
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          curl -X GET https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/${{ steps.determine_worker.outputs.name }} \
-          -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result.subdomain' | echo url=https://$(cat) >> $GITHUB_OUTPUT
-      
       - name: Show all the outputs in summary
         id: show_outputs
         run: |
@@ -142,8 +129,6 @@ jobs:
           printf "| worker_name | \`${{ steps.determine_worker.outputs.name }}\` | The name of the worker set in \`wrangler.toml\` |\n" >> $GITHUB_STEP_SUMMARY
           printf "| worker_subdomain | \`${{ steps.get_subdomain.outputs.subdomain }}\` | The subdomain for workers set up in your CloudFlare account |\n" >> $GITHUB_STEP_SUMMARY
           printf "| worker_url | \`https://${{ steps.determine_worker.outputs.name }}.${{ steps.get_subdomain.outputs.subdomain }}\` | The full URL worker will be deployed to or is already deployed to |\n" >> $GITHUB_STEP_SUMMARY
-          printf "| pages_url | \`${{ steps.get_pages_url.outputs.url }}\` | The full URL Pages are deployed to. Null if not yet deployed. |\n" >> $GITHUB_STEP_SUMMARY
-          printf "| d1_database_name | \`${{ steps.determine_database.outputs.name }}\` | The name of the D1 database set in \`wrangler.toml\` |\n" >> $GITHUB_STEP_SUMMARY
           printf "| d1_database_id | \`${{ steps.determine_database.outputs.id }}\` | The id of the D1 database set in \`wrangler.toml\` |\n" >> $GITHUB_STEP_SUMMARY
           printf "| d1_apparent_database_name | \`${{ steps.get_db_name_by_id.outputs.name }}\` | The name of the database with the id from \`d1_database_id\` |\n" >> $GITHUB_STEP_SUMMARY
           printf "| d1_apparent_database_id | \`${{ steps.get_db_id_by_name.outputs.uuid }}\` | The id of the database with the name from \`d1_database_name\` |\n" >> $GITHUB_STEP_SUMMARY
