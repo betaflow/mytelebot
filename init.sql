@@ -6,3 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
 	status text,
 	level integer
 );
+CREATE TABLE IF NOT EXISTS tcsp (
+	ma_sp integer UNIQUE NOT NULL,
+	ten_sp text,
+	db_id text
+);
